@@ -1,0 +1,29 @@
+name: Build RedOS
+on: workflow_dispatch
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Liberer de l'espace disque
+        run: sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache /usr/share/swift /usr/local/share/boost
+
+      - name: Construire RedOS dans Debian 12
+        run: |
+          docker run --rm --privileged -v "$PWD":/work -w /work debian:bookworm bash -c "
+            apt-get update &&
+            apt-get install -y debootstrap ca-certificates xorriso squashfs-tools syslinux syslinux-common isolinux mtools dosfstools grub-pc-bin grub-efi-amd64-bin &&
+            bash build-redos.sh
+          "
+
+      - name: Rendre l'ISO lisible
+        run: sudo chmod a+r redos-v1.iso && ls -lh redos-v1.iso
+
+      - name: Publier l'ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: redos-v1-iso
+          path: redos-v1.iso
+          compression-level: 0
